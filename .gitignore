@@ -1,2 +1,9 @@
-*.asv
-**/.DS_Store
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+results/*/*/
+!results/simulation/
+!results/sensitivity/
+!results/optimization/
