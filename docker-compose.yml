@@ -1,0 +1,16 @@
+services:
+  simulate:
+    build: .
+    command: ["python", "-m", "eaf_model.cli", "simulate", "--output-dir", "/app/results"]
+    volumes:
+      - ./results:/app/results
+  sensitivity:
+    build: .
+    command: ["python", "-m", "eaf_model.cli", "sensitivity", "--output-dir", "/app/results"]
+    volumes:
+      - ./results:/app/results
+  optimization:
+    build: .
+    command: ["python", "-m", "eaf_model.cli", "optimization", "--output-dir", "/app/results"]
+    volumes:
+      - ./results:/app/results
