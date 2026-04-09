@@ -1,6 +1,4 @@
-# EAF Modelling (Python 3.12 Migration)
-
-![Logo of Colosseum Steelworks](./Images/colosseum_steelworks_logo.png)
+# EAF Modelling 
 
 This repository now contains a fully Python-based Electric Arc Furnace (EAF) model. The original MATLAB model has been archived in `legacy_matlab/` for reference only and is no longer required for runtime.
 
