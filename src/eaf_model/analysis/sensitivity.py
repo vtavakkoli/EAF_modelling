@@ -15,6 +15,18 @@ from eaf_model.simulation.core import run_simulation
 
 PCT_VALUES = [-20, -10, -5, 0, 5, 10, 15, 20]
 
+PCT_VALUES_BY_LABEL = {
+    "Cinj": [-20, -10, 0, 10, 20],
+    "Mninj": [-20, -10, 0, 10, 20],
+    "O2lance": [-20, -15, -10, -5, 0, 5, 10, 15, 20],
+    "O2post": [-20, -10, 0, 10, 20],
+    "SlagAdd": [-20, -10, 0, 10, 20],
+    "Removal Interval": [-20, -10, 0, 10, 20],
+    "Parc": [-20, -10, 0, 10, 20],
+    "Upper Size": [-20, -10, 0, 10, 20],
+    "Lower Size": [-20, -10, 0, 10, 20],
+}
+
 STYLE = {
     "Cinj": dict(color="#0072BD", marker="o", markersize=10, markerfacecolor="none", markeredgewidth=1.5),
     "Mninj": dict(color="#D95319", marker="+", markersize=11, markeredgewidth=1.5),
@@ -70,7 +82,7 @@ def _render_sensitivity_html(run_dir: Path, curves: dict[str, dict[str, list[flo
         ax.set_facecolor("white")
         for series_name, values in curves[metric_key].items():
             style = STYLE[series_name]
-            ax.plot(PCT_VALUES, values, linewidth=1.8, label=series_name, **style)
+            ax.plot(PCT_VALUES_BY_LABEL[series_name], values, linewidth=1.8, label=series_name, **style)
 
         ax.set_xlim(-20, 20)
         if ylim:
@@ -133,9 +145,14 @@ def run_sensitivity(base_cfg: EAFConfig, output_root: Path, make_plots: bool = T
         "t_liquid_metal_k": {k: [] for k in labels},
     }
 
+    default_cfg = EAFConfig()
+    cfg_for_sensitivity = base_cfg
+    if base_cfg.total_time_s == default_cfg.total_time_s and base_cfg.takeout_interval_s == default_cfg.takeout_interval_s:
+        cfg_for_sensitivity = replace(base_cfg, takeout_interval_s=600.0)
+
     for label in labels:
-        for pct in PCT_VALUES:
-            cfg = _modify_case(base_cfg, label, pct)
+        for pct in PCT_VALUES_BY_LABEL[label]:
+            cfg = _modify_case(cfg_for_sensitivity, label, pct)
             ts_rows, summary = run_simulation(cfg)
 
             selectivity = 1000.0 + 2.2 * summary["final"]["t_liquid_metal_k"] - 8.0 * summary["final"]["co2_to_co_ratio"]
