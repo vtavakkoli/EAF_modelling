@@ -5,6 +5,7 @@ import io
 import json
 from dataclasses import replace
 from pathlib import Path
+from statistics import mean
 from typing import Any
 
 from eaf_model.config import EAFConfig
@@ -16,20 +17,6 @@ BLUE = "#0072BD"
 ORANGE = "#D95319"
 GREEN_BG = "#A9D18E"
 RED_BG = "#E6B8C0"
-
-OLD_MODEL_REFERENCE = {
-    "carbon_wt_pct": {"initial": 0.523, "optimized": 0.512, "initial_min": 0.505, "initial_max": 0.560, "optimized_min": 0.501, "optimized_max": 0.540},
-    "manganese_wt_pct": {"initial": 0.700, "optimized": 0.680, "initial_min": 0.580, "initial_max": 0.750, "optimized_min": 0.590, "optimized_max": 0.710},
-    "avg_acc_solid_metal_kg": {"initial": 1420.0, "optimized": 1360.0},
-    "outlet_liquid_temp_k": {"initial": 2050.0, "optimized": 1940.0},
-    "selectivity_fe": {"initial": 1800.0, "optimized": 4330.0},
-    "material_rates": {
-        "initial": {"Cinj": 1.3, "Mninj": 1.5, "O2,lance": 4.0, "O2,post": 1.0, "Slag": 3.0},
-        "optimized": {"Cinj": 0.95, "Mninj": 1.25, "O2,lance": 2.8, "O2,post": 0.8, "Slag": 1.5},
-    },
-    "carbon_oxides_emission": {"initial": 6.1, "optimized": 4.6},
-    "co2_to_co_ratio": {"initial": 9.8, "optimized": 10.8},
-}
 
 
 def option_configs(base: EAFConfig) -> dict[str, EAFConfig]:
@@ -50,6 +37,74 @@ def _plot_to_base64(plotter: Any) -> str:
     plotter.savefig(buffer, format="png", dpi=140, bbox_inches="tight", facecolor="#E5E5E5")
     buffer.seek(0)
     return base64.b64encode(buffer.read()).decode("ascii")
+
+
+def _build_comparison_from_runs(option_data: dict[str, dict[str, Any]], ranking: list[dict[str, float | str]]) -> dict[str, Any]:
+    initial_name = "option1"
+    optimized_name = str(ranking[0]["option"])
+
+    init = option_data[initial_name]
+    opt = option_data[optimized_name]
+    init_rows = init["timeseries"]
+    opt_rows = opt["timeseries"]
+    init_cfg: EAFConfig = init["config"]
+    opt_cfg: EAFConfig = opt["config"]
+
+    def minmax(rows: list[dict[str, float]], key: str) -> tuple[float, float]:
+        vals = [float(r[key]) for r in rows]
+        return min(vals), max(vals)
+
+    i_c_min, i_c_max = minmax(init_rows, "carbon_wt_pct")
+    o_c_min, o_c_max = minmax(opt_rows, "carbon_wt_pct")
+    i_mn_min, i_mn_max = minmax(init_rows, "manganese_wt_pct")
+    o_mn_min, o_mn_max = minmax(opt_rows, "manganese_wt_pct")
+
+    def selectivity(final: dict[str, float]) -> float:
+        return 1000.0 + 2.2 * float(final["t_liquid_metal_k"]) - 8.0 * float(final["co2_to_co_ratio"])
+
+    return {
+        "source": {"initial_option": initial_name, "optimized_option": optimized_name},
+        "carbon_wt_pct": {
+            "initial": float(init["summary"]["final"]["carbon_wt_pct"]),
+            "optimized": float(opt["summary"]["final"]["carbon_wt_pct"]),
+            "initial_min": i_c_min,
+            "initial_max": i_c_max,
+            "optimized_min": o_c_min,
+            "optimized_max": o_c_max,
+        },
+        "manganese_wt_pct": {
+            "initial": float(init["summary"]["final"]["manganese_wt_pct"]),
+            "optimized": float(opt["summary"]["final"]["manganese_wt_pct"]),
+            "initial_min": i_mn_min,
+            "initial_max": i_mn_max,
+            "optimized_min": o_mn_min,
+            "optimized_max": o_mn_max,
+        },
+        "avg_acc_solid_metal_kg": {
+            "initial": mean(float(r["m_solid_kg"]) for r in init_rows),
+            "optimized": mean(float(r["m_solid_kg"]) for r in opt_rows),
+        },
+        "outlet_liquid_temp_k": {
+            "initial": float(init["summary"]["final"]["t_liquid_metal_k"]),
+            "optimized": float(opt["summary"]["final"]["t_liquid_metal_k"]),
+        },
+        "selectivity_fe": {
+            "initial": selectivity(init["summary"]["final"]),
+            "optimized": selectivity(opt["summary"]["final"]),
+        },
+        "material_rates": {
+            "initial": {"Cinj": init_cfg.c_inj_kg_s, "Mninj": init_cfg.fm_inj_kg_s, "O2,lance": init_cfg.o2_lance_kg_s, "O2,post": init_cfg.o2_post_kg_s, "Slag": init_cfg.slag_add_kg_s},
+            "optimized": {"Cinj": opt_cfg.c_inj_kg_s, "Mninj": opt_cfg.fm_inj_kg_s, "O2,lance": opt_cfg.o2_lance_kg_s, "O2,post": opt_cfg.o2_post_kg_s, "Slag": opt_cfg.slag_add_kg_s},
+        },
+        "carbon_oxides_emission": {
+            "initial": float(init["summary"]["final"]["offgas_carbon_oxides_kg"]),
+            "optimized": float(opt["summary"]["final"]["offgas_carbon_oxides_kg"]),
+        },
+        "co2_to_co_ratio": {
+            "initial": float(init["summary"]["final"]["co2_to_co_ratio"]),
+            "optimized": float(opt["summary"]["final"]["co2_to_co_ratio"]),
+        },
+    }
 
 
 def _composition_panel(ax: Any, data: dict[str, float], ylabel: str, y_limits: tuple[float, float], green_range: tuple[float, float]) -> None:
@@ -173,10 +228,10 @@ section{{background:#fff;padding:18px;margin-bottom:16px;border:1px solid #ddd;}
 table{{border-collapse:collapse;width:100%;margin-top:8px;}}
 th,td{{border:1px solid #999;padding:8px;text-align:center;}}
 th{{background:#f0f0f0;}}
-code{{background:#f3f3f3;padding:2px 4px;}}
 </style></head><body>
 <h1>EAF Optimization Report</h1>
-<p>Generated from Python optimization workflow to compare migrated model outputs against legacy MATLAB reference KPI snapshots.</p>
+<p>This report is generated entirely from current optimization run data.</p>
+<p>Initial option: <strong>{model_comparison['source']['initial_option']}</strong>; Optimized option: <strong>{model_comparison['source']['optimized_option']}</strong>.</p>
 
 <section>
 <h2>KPI categories</h2>
@@ -211,7 +266,7 @@ code{{background:#f3f3f3;padding:2px 4px;}}
 <section>{img_block('safety','Safety and environment comparison')}</section>
 
 <section>
-<h2>Reference comparison payload (JSON)</h2>
+<h2>Generated comparison payload (JSON)</h2>
 <pre>{json.dumps(model_comparison, indent=2)}</pre>
 </section>
 
@@ -226,9 +281,11 @@ def run_optimization(base_cfg: EAFConfig, output_root: Path, make_plots: bool = 
     run_dir = make_run_dir(output_root, "optimization")
     rows: list[dict[str, float | str]] = []
     option_rows: list[dict[str, float | str]] = []
+    option_data: dict[str, dict[str, Any]] = {}
 
     for name, cfg in option_configs(base_cfg).items():
         ts_rows, summary = run_simulation(cfg)
+        option_data[name] = {"timeseries": ts_rows, "summary": summary, "config": cfg}
         opex_proxy = cfg.c_inj_kg_s + cfg.fm_inj_kg_s + cfg.o2_lance_kg_s + cfg.o2_post_kg_s + cfg.slag_add_kg_s
         score = (
             0.35 * summary["final"]["manganese_wt_pct"]
@@ -269,8 +326,10 @@ def run_optimization(base_cfg: EAFConfig, output_root: Path, make_plots: bool = 
             plot_simulation(ts_rows, opt_dir)
 
     ranking = sorted(rows, key=lambda x: float(x["score"]), reverse=True)
+    model_comparison = _build_comparison_from_runs(option_data, ranking)
+
     write_dataframe(ranking, run_dir / "ranking.csv")
     write_dataframe(option_rows, run_dir / "options.csv")
-    write_summary({"ranking": ranking, "reference": OLD_MODEL_REFERENCE}, run_dir / "ranking.json")
-    _build_optimization_html(ranking=ranking, option_rows=option_rows, model_comparison=OLD_MODEL_REFERENCE, run_dir=run_dir)
+    write_summary({"ranking": ranking, "comparison": model_comparison}, run_dir / "ranking.json")
+    _build_optimization_html(ranking=ranking, option_rows=option_rows, model_comparison=model_comparison, run_dir=run_dir)
     return run_dir, ranking
