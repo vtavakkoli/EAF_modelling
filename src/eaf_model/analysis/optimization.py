@@ -150,9 +150,15 @@ def _composition_panel(ax: Any, data: dict[str, float], ylabel: str, y_limits: t
     ax.scatter([x_initial, x_initial], [data["initial_min"], data["initial_max"]], s=45, facecolors="none", edgecolors=BLUE, linewidths=1.5, marker="v", zorder=3)
     ax.scatter([x_opt, x_opt], [data["optimized_min"], data["optimized_max"]], s=45, facecolors="none", edgecolors=ORANGE, linewidths=1.5, marker="v", zorder=3)
 
+    data_min = min(data["initial_min"], data["optimized_min"], y_limits[0])
+    data_max = max(data["initial_max"], data["optimized_max"], y_limits[1])
+    span = max(data_max - data_min, 1e-9)
+    y_min = data_min - 0.05 * span
+    y_max = data_max + 0.05 * span
+
     ax.set_xlim(-0.7, 1.7)
     ax.set_xticks([])
-    ax.set_ylim(*y_limits)
+    ax.set_ylim(y_min, y_max)
     ax.set_ylabel(ylabel)
 
     handles = [
