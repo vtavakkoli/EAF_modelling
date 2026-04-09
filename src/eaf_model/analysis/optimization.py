@@ -30,7 +30,7 @@ def option_configs(base: EAFConfig) -> dict[str, EAFConfig]:
 
     return {
         "option1": replace(base, total_time_s=option1_secs, c_inj_kg_s=1.30, fm_inj_kg_s=1.50, o2_lance_kg_s=4.00, o2_post_kg_s=1.00, slag_add_kg_s=3.00, takeout_interval_s=out_base, arc_power_kw=30000.0),
-        "option2": replace(base, total_time_s=option2_secs, c_inj_kg_s=0.95, fm_inj_kg_s=1.25, o2_lance_kg_s=2.80, o2_post_kg_s=0.80, slag_add_kg_s=1.50, takeout_interval_s=out_base, arc_power_kw=10000.0),
+        "option2": replace(base, total_time_s=option2_secs, c_inj_kg_s=0.95, fm_inj_kg_s=1.25, o2_lance_kg_s=2.80, o2_post_kg_s=0.80, slag_add_kg_s=1.50, takeout_interval_s=out_base, arc_power_kw=30000.0),
         "option3": replace(
             base,
             total_time_s=option3_secs,
