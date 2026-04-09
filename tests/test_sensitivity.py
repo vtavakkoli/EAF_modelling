@@ -7,3 +7,4 @@ def test_sensitivity_creates_output(tmp_path) -> None:
     assert run_dir.exists()
     assert len(rows) > 0
     assert (run_dir / "sensitivity_summary.csv").exists()
+    assert (run_dir / "sensitivity.html").exists()
