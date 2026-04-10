@@ -4,6 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from eaf_model.config import EAFConfig
+from eaf_model.constants import MOLAR_MASS
 from eaf_model.simulation.geometry import derive_geometry
 from eaf_model.simulation.solver import euler_step
 from eaf_model.simulation.state import EAFState
@@ -30,10 +31,13 @@ def run_simulation(config: EAFConfig) -> tuple[Timeseries, dict[str, Any]]:
                     "m_liquid_metal_kg": state.m_fe_lsc + state.m_c_lsc + state.m_mn_lsc,
                     "m_solid_kg": state.m_solid_total,
                     "m_liquid_slag_kg": state.m_liquid_slag_total,
+                    "m_fe_lsc_kg": state.m_fe_lsc,
+                    "m_feo_lsl_kg": state.m_feo_lsl,
                     "co2_to_co_ratio": state.m_co2 / max(state.m_co, 1e-9),
                     "carbon_wt_pct": 100.0 * state.m_c_lsc / max(state.m_fe_lsc + state.m_c_lsc + state.m_mn_lsc, 1e-9),
                     "manganese_wt_pct": 100.0 * state.m_mn_lsc / max(state.m_fe_lsc + state.m_c_lsc + state.m_mn_lsc, 1e-9),
                     "offgas_carbon_oxides_kg": total_gas,
+                    "selectivity_fe": (state.m_fe_lsc / MOLAR_MASS.FE) / max(state.m_feo_lsl / MOLAR_MASS.FEO, 1e-9),
                 }
             )
 

@@ -9,7 +9,7 @@ from eaf_model.simulation.state import EAFState
 
 
 def euler_step(state: EAFState, cfg: EAFConfig, dt: float) -> None:
-    rates = compute_reaction_rates(state, cfg.o2_lance_kg_s)
+    rates = compute_reaction_rates(state, cfg.o2_lance_kg_s + cfg.o2_post_kg_s, state.t_lsc)
     update_mass(state, rates, cfg, dt)
     update_temperatures(state, cfg, dt)
     validate_state(state)
