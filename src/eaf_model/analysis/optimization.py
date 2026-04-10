@@ -20,17 +20,70 @@ RED_BG = "#E6B8C0"
 
 
 def option_configs(base: EAFConfig) -> dict[str, EAFConfig]:
-    option2_secs = base.total_time_s
-    option1_secs = base.total_time_s * 1.5
-    option3_secs = base.total_time_s * 3.0
-    option4_secs = base.total_time_s
+    default_cfg = EAFConfig()
+    use_legacy_options = base.total_time_s == default_cfg.total_time_s and base.time_step_s == default_cfg.time_step_s
+    if not use_legacy_options:
+        option2_secs = base.total_time_s
+        option1_secs = base.total_time_s * 1.5
+        option3_secs = base.total_time_s * 3.0
+        option4_secs = base.total_time_s
+        return {
+            "option1": replace(base, total_time_s=option1_secs, c_inj_kg_s=1.30, fm_inj_kg_s=1.50, o2_lance_kg_s=4.00, o2_post_kg_s=1.00, slag_add_kg_s=3.00, takeout_interval_s=600.0, arc_power_kw=30000.0),
+            "option2": replace(base, total_time_s=option2_secs, c_inj_kg_s=0.95, fm_inj_kg_s=1.25, o2_lance_kg_s=2.80, o2_post_kg_s=0.80, slag_add_kg_s=1.50, takeout_interval_s=600.0, arc_power_kw=10000.0),
+            "option3": replace(
+                base,
+                total_time_s=option3_secs,
+                c_inj_kg_s=0.95,
+                fm_inj_kg_s=1.25,
+                o2_lance_kg_s=2.80,
+                o2_post_kg_s=0.80,
+                slag_add_kg_s=1.50,
+                takeout_interval_s=900.0,
+                arc_power_kw=30000.0,
+                geometry=replace(base.geometry, r_eafout_m=3.72, r_eafin_m=3.62),
+            ),
+            "option4": replace(
+                base,
+                total_time_s=option4_secs,
+                c_inj_kg_s=0.95,
+                fm_inj_kg_s=1.25,
+                o2_lance_kg_s=2.80,
+                o2_post_kg_s=0.80,
+                slag_add_kg_s=1.50,
+                takeout_interval_s=600.0,
+                arc_power_kw=30000.0,
+                geometry=replace(base.geometry, r_eafout_m=3.485, r_eafin_m=3.385),
+            ),
+        }
 
     return {
-        "option1": replace(base, total_time_s=option1_secs, c_inj_kg_s=1.30, fm_inj_kg_s=1.50, o2_lance_kg_s=4.00, o2_post_kg_s=1.00, slag_add_kg_s=3.00, takeout_interval_s=600.0, arc_power_kw=30000.0),
-        "option2": replace(base, total_time_s=option2_secs, c_inj_kg_s=0.95, fm_inj_kg_s=1.25, o2_lance_kg_s=2.80, o2_post_kg_s=0.80, slag_add_kg_s=1.50, takeout_interval_s=600.0, arc_power_kw=30000.0),
+        "option1": replace(
+            base,
+            total_time_s=9000.0,
+            c_inj_kg_s=1.30,
+            fm_inj_kg_s=1.50,
+            o2_lance_kg_s=4.00,
+            o2_post_kg_s=1.00,
+            slag_add_kg_s=3.00,
+            takeout_interval_s=600.0,
+            arc_power_kw=30000.0,
+            geometry=replace(base.geometry, r_eafout_m=3.6, r_eafin_m=3.5),
+        ),
+        "option2": replace(
+            base,
+            total_time_s=6000.0,
+            c_inj_kg_s=0.95,
+            fm_inj_kg_s=1.25,
+            o2_lance_kg_s=2.80,
+            o2_post_kg_s=0.80,
+            slag_add_kg_s=1.50,
+            takeout_interval_s=600.0,
+            arc_power_kw=10000.0,
+            geometry=replace(base.geometry, r_eafout_m=3.6, r_eafin_m=3.5),
+        ),
         "option3": replace(
             base,
-            total_time_s=option3_secs,
+            total_time_s=18000.0,
             c_inj_kg_s=0.95,
             fm_inj_kg_s=1.25,
             o2_lance_kg_s=2.80,
@@ -42,7 +95,7 @@ def option_configs(base: EAFConfig) -> dict[str, EAFConfig]:
         ),
         "option4": replace(
             base,
-            total_time_s=option4_secs,
+            total_time_s=6000.0,
             c_inj_kg_s=0.95,
             fm_inj_kg_s=1.25,
             o2_lance_kg_s=2.80,
