@@ -47,7 +47,7 @@ def update_mass(state: EAFState, rates: ReactionRates, cfg: EAFConfig, dt: float
     state.m_o2 += (cfg.o2_lance_kg_s + cfg.o2_post_kg_s) * dt
 
     # Offgas venting proxy
-    vent_coeff = 0.022
+    vent_coeff = 0.022 * (cfg.geometry.r_eafout_m / 3.3)
     state.m_co = max(1e-8, state.m_co - vent_coeff * state.m_co * dt)
     state.m_co2 = max(1e-8, state.m_co2 - vent_coeff * state.m_co2 * dt)
     state.m_o2 = max(1e-8, state.m_o2 - vent_coeff * state.m_o2 * dt)
