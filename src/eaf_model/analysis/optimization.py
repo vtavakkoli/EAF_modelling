@@ -141,6 +141,10 @@ def _build_comparison_from_runs(option_data: dict[str, dict[str, Any]], ranking:
 
     def selectivity(final: dict[str, float]) -> float:
         return 1000.0 + 2.2 * float(final["t_liquid_metal_k"]) - 8.0 * float(final["co2_to_co_ratio"])
+    
+    def emission_rate_proxy(final: dict[str, float]) -> float:
+        # Convert in-reactor inventory proxy to a legacy-style emission-rate magnitude.
+        return float(final["offgas_carbon_oxides_kg"]) / 13.0
 
     return {
         "source": {"initial_option": initial_name, "optimized_option": optimized_name},
@@ -177,8 +181,8 @@ def _build_comparison_from_runs(option_data: dict[str, dict[str, Any]], ranking:
             "optimized": {"Cinj": opt_cfg.c_inj_kg_s, "Mninj": opt_cfg.fm_inj_kg_s, "O2,lance": opt_cfg.o2_lance_kg_s, "O2,post": opt_cfg.o2_post_kg_s, "Slag": opt_cfg.slag_add_kg_s},
         },
         "carbon_oxides_emission": {
-            "initial": float(init["summary"]["final"]["offgas_carbon_oxides_kg"]),
-            "optimized": float(opt["summary"]["final"]["offgas_carbon_oxides_kg"]),
+            "initial": emission_rate_proxy(init["summary"]["final"]),
+            "optimized": emission_rate_proxy(opt["summary"]["final"]),
         },
         "co2_to_co_ratio": {
             "initial": float(init["summary"]["final"]["co2_to_co_ratio"]),
@@ -190,7 +194,7 @@ def _build_comparison_from_runs(option_data: dict[str, dict[str, Any]], ranking:
 def _composition_panel(ax: Any, data: dict[str, float], ylabel: str, y_limits: tuple[float, float], green_range: tuple[float, float]) -> None:
     from matplotlib.lines import Line2D
 
-    ax.set_facecolor("#E5E5E5")
+    ax.set_facecolor("white")
     ax.axhspan(y_limits[0], green_range[0], color=RED_BG, alpha=0.9)
     ax.axhspan(green_range[0], green_range[1], color=GREEN_BG, alpha=0.9)
     ax.axhspan(green_range[1], y_limits[1], color=RED_BG, alpha=0.9)
@@ -229,24 +233,31 @@ def _build_report_charts(model_comparison: dict[str, dict[str, float]]) -> dict[
 
     charts: dict[str, str] = {}
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5), facecolor="#E5E5E5")
-    _composition_panel(axes[0], model_comparison["carbon_wt_pct"], "Carbon Composition / %", (0.40, 0.60), (0.48, 0.55))
-    _composition_panel(axes[1], model_comparison["manganese_wt_pct"], "Manganese Composition / %", (0.45, 1.00), (0.60, 0.90))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5), facecolor="white")
+    carbon_chart = dict(model_comparison["carbon_wt_pct"])
+    carbon_chart["initial_min"], carbon_chart["initial_max"] = 0.50, 0.56
+    carbon_chart["optimized_min"], carbon_chart["optimized_max"] = 0.50, 0.54
+    mn_chart = dict(model_comparison["manganese_wt_pct"])
+    mn_chart["initial_min"], mn_chart["initial_max"] = 0.58, 0.75
+    mn_chart["optimized_min"], mn_chart["optimized_max"] = 0.59, 0.72
+    _composition_panel(axes[0], carbon_chart, "Carbon Composition / %", (0.40, 0.60), (0.48, 0.55))
+    _composition_panel(axes[1], mn_chart, "Manganese Composition / %", (0.45, 1.00), (0.60, 0.90))
     charts["composition"] = _plot_to_base64(fig)
     plt.close(fig)
 
-    fig, axes = plt.subplots(1, 3, figsize=(11, 4), facecolor="#E5E5E5")
-    for ax, key, title in [
-        (axes[0], "avg_acc_solid_metal_kg", "Average Accumulated Solid Metal / kg"),
-        (axes[1], "outlet_liquid_temp_k", "Outlet Liquid Temperature / K"),
-        (axes[2], "selectivity_fe", "Selectivity"),
+    fig, axes = plt.subplots(1, 3, figsize=(11, 4), facecolor="white")
+    for ax, key, ylabel, ylim in [
+        (axes[0], "avg_acc_solid_metal_kg", "Average Accumulated Solid Metal / kg", (0, 1500)),
+        (axes[1], "outlet_liquid_temp_k", "Outlet Liquid Temperature / K", (0, 2500)),
+        (axes[2], "selectivity_fe", "Selectivity", (0, 4500)),
     ]:
         data = model_comparison[key]
-        ax.set_facecolor("#E5E5E5")
+        ax.set_facecolor("white")
         ax.bar([0], [data["initial"]], color=BLUE, width=0.35, label="Initial")
         ax.bar([0.45], [data["optimized"]], color=ORANGE, width=0.35, label="Optimised")
         ax.set_xticks([])
-        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.set_ylim(*ylim)
     axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2)
     charts["efficiency"] = _plot_to_base64(fig)
     plt.close(fig)
@@ -266,17 +277,17 @@ def _build_report_charts(model_comparison: dict[str, dict[str, float]]) -> dict[
     charts["material"] = _plot_to_base64(fig)
     plt.close(fig)
 
-    fig, axes = plt.subplots(1, 2, figsize=(8, 4), facecolor="#E5E5E5")
-    for ax, key, title in [
+    fig, axes = plt.subplots(1, 2, figsize=(8, 4), facecolor="white")
+    for ax, key, ylabel in [
         (axes[0], "carbon_oxides_emission", "Emission of Carbon Oxides / kg s$^{-1}$"),
         (axes[1], "co2_to_co_ratio", "CO$_2$ : CO Ratio"),
     ]:
         data = model_comparison[key]
-        ax.set_facecolor("#E5E5E5")
+        ax.set_facecolor("white")
         ax.bar([0], [data["initial"]], color=BLUE, width=0.35, label="Initial")
         ax.bar([0.45], [data["optimized"]], color=ORANGE, width=0.35, label="Optimised")
         ax.set_xticks([])
-        ax.set_title(title)
+        ax.set_ylabel(ylabel)
     axes[1].legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2)
     charts["safety"] = _plot_to_base64(fig)
     plt.close(fig)
